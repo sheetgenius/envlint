@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EnvLint — .env File Validator &amp; Linter</title>
+  <meta name="description" content="Paste your .env file to instantly find missing values, duplicate keys, and exposed secrets. 100% browser-side — nothing is uploaded or transmitted.">
+  <meta property="og:title" content="EnvLint — .env File Validator &amp; Linter">
+  <meta property="og:description" content="Paste your .env file to instantly find missing values, duplicate keys, and exposed secrets. 100% browser-side — nothing is uploaded.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://envlint.com">
+  <link rel="canonical" href="https://envlint.com">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "EnvLint",
+    "description": "Browser-side .env file validator and linter. Paste your environment variable file and instantly detect missing values, duplicate keys, invalid formatting, and exposed secrets.",
+    "url": "https://envlint.com",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web Browser",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Parse .env files in the browser",
+      "Detect missing values",
+      "Flag duplicate keys",
+      "Identify potentially exposed secrets",
+      "Generate .env.example output",
+      "Zero data transmission — nothing leaves your browser"
+    ]
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is my .env file uploaded to a server?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. EnvLint runs entirely in your browser. Your .env file content never leaves your machine — there is no server, no database, and no logging. You can verify this by disconnecting from the internet and using the tool."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is a .env file?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A .env file stores environment variables for a software project — configuration values like database URLs, API keys, and feature flags. It is read at startup by frameworks like Node.js (via dotenv), Ruby on Rails, Django, and others. The file lives in the project root and should never be committed to version control."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does EnvLint check for?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "EnvLint checks for: missing values (KEY= with nothing after the equals sign), duplicate keys, keys with spaces or invalid characters, lines that are neither comments nor valid key=value pairs, and keys that look like secrets (containing words like KEY, SECRET, TOKEN, PASSWORD, or PRIVATE) that have real values rather than placeholder text."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is a .env.example file?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A .env.example file is a safe-to-commit template of your .env file with all sensitive values replaced by placeholder text. It documents which environment variables your project requires without exposing actual secrets. EnvLint generates a .env.example automatically from your pasted .env file."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does EnvLint support multi-line values?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. EnvLint handles quoted values that span multiple lines, values containing # characters, and values with embedded equals signs, following the dotenv specification."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1816;
+      --surface: #242220;
+      --surface2: #2e2c29;
+      --border: #3a3632;
+      --text: #e0d8c8;
+      --muted: #8f8577;
+      --accent: #c8a84e;
+      --ok: #5aad78;
+      --warn: #c8a84e;
+      --error: #c84e4e;
+      --info: #4e88c8;
+      --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    }
+
+    body {
+      font-family: var(--mono);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1.5rem 4rem;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app { max-width: 820px; margin: 0 auto; }
+
+    /* HEADER */
+    header { margin-bottom: 2rem; }
+    .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+    .logo span { color: var(--accent); }
+    .tagline { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+    /* TRUST BADGE */
+    .trust {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: var(--ok);
+      background: #1f2e24;
+      border: 1px solid #2e4a38;
+      border-radius: 4px;
+      padding: 0.2rem 0.6rem;
+      margin-top: 0.75rem;
+    }
+    .trust svg { flex-shrink: 0; }
+
+    /* INPUT SECTION */
+    .input-section { margin-bottom: 1.5rem; }
+    .input-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .btn-sm {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: border-color 0.1s, color 0.1s;
+    }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      padding: 1rem;
+      resize: vertical;
+      outline: none;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); opacity: 0.6; }
+
+    /* CONTROLS */
+    .controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #1a1816;
+      border: none;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.5rem 1.25rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: opacity 0.1s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-clear {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      padding: 0.5rem 0.9rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: border-color 0.1s, color 0.1s;
+    }
+    .btn-clear:hover { border-color: var(--muted); color: var(--text); }
+
+    .upload-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0.5rem 0.9rem;
+      border: 1px dashed var(--border);
+      border-radius: 5px;
+      transition: border-color 0.1s, color 0.1s;
+    }
+    .upload-label:hover { border-color: var(--accent); color: var(--accent); }
+    #file-input { display: none; }
+
+    /* RESULTS */
+    #results { display: none; }
+
+    /* SUMMARY BAR */
+    .summary-bar {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 1rem;
+      min-width: 90px;
+    }
+    .stat-val { font-size: 1.4rem; font-weight: 700; line-height: 1; }
+    .stat-lbl { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+    .stat-val.ok { color: var(--ok); }
+    .stat-val.warn { color: var(--warn); }
+    .stat-val.error { color: var(--error); }
+    .stat-val.neutral { color: var(--text); }
+
+    /* ISSUES */
+    .section { margin-bottom: 2rem; }
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+    .issue-list { display: flex; flex-direction: column; gap: 0.4rem; }
+    .issue {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 5px;
+      border-left: 3px solid transparent;
+    }
+    .issue.error { background: #2a1f1f; border-color: var(--error); }
+    .issue.warn  { background: #2a2519; border-color: var(--warn); }
+    .issue.info  { background: #1a2230; border-color: var(--info); }
+    .issue-icon { font-size: 0.85rem; margin-top: 0.05rem; flex-shrink: 0; }
+    .issue-text { flex: 1; }
+    .issue-key { color: var(--accent); font-weight: 600; }
+    .issue-msg { color: var(--muted); font-size: 0.78rem; }
+    .no-issues {
+      font-size: 0.82rem;
+      color: var(--ok);
+      padding: 0.75rem;
+      background: #1f2e24;
+      border: 1px solid #2e4a38;
+      border-radius: 6px;
+    }
+
+    /* TABLE */
+    .env-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .env-table th {
+      text-align: left;
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0.4rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .env-table td {
+      padding: 0.4rem 0.75rem;
+      border-bottom: 1px solid #2a2824;
+      vertical-align: middle;
+    }
+    .env-table tr:last-child td { border-bottom: none; }
+    .env-table tr:hover td { background: var(--surface2); }
+    .key-cell { color: var(--accent); white-space: nowrap; }
+    .val-cell { color: var(--text); word-break: break-all; max-width: 360px; }
+    .val-empty { color: var(--error); font-style: italic; }
+    .val-masked { color: var(--muted); font-style: italic; }
+    .badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      margin-left: 0.3rem;
+      vertical-align: middle;
+    }
+    .badge-error { background: #3a1f1f; color: var(--error); }
+    .badge-warn  { background: #3a2f19; color: var(--warn); }
+    .badge-dup   { background: #2a2040; color: #a080e0; }
+
+    /* OUTPUT */
+    .output-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .output-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .output-filename { font-size: 0.75rem; color: var(--muted); }
+    .output-code {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      padding: 1rem;
+      overflow-x: auto;
+      white-space: pre;
+      max-height: 320px;
+      overflow-y: auto;
+      line-height: 1.55;
+      color: var(--text);
+    }
+    .output-comment { color: var(--muted); }
+    .output-key { color: var(--accent); }
+    .output-val { color: var(--ok); }
+
+    /* COPY FEEDBACK */
+    .copied {
+      font-size: 0.72rem;
+      color: var(--ok);
+      margin-left: 0.5rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .copied.show { opacity: 1; }
+
+    /* ABOUT */
+    .about-section {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.8;
+    }
+    .about-section h1 {
+      font-size: 1.1rem;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+    .about-section h2 {
+      font-size: 0.85rem;
+      color: var(--text);
+      margin: 1.5rem 0 0.5rem;
+    }
+    .about-section p { margin-bottom: 0.75rem; }
+    .about-section ul { padding-left: 1.5rem; margin-bottom: 0.75rem; }
+    .about-section li { margin-bottom: 0.3rem; }
+    .about-section strong { color: var(--text); }
+
+    /* FAQ */
+    .faq { margin-top: 2rem; }
+    .faq h2 { font-size: 0.85rem; color: var(--text); margin-bottom: 1rem; }
+    .faq-item { margin-bottom: 1.25rem; }
+    .faq-q { color: var(--text); font-weight: 600; margin-bottom: 0.35rem; }
+    .faq-a { color: var(--muted); line-height: 1.7; }
+
+    /* FOOTER */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.72rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+
+    @media (max-width: 600px) {
+      .summary-bar { gap: 0.5rem; }
+      .stat { min-width: 70px; padding: 0.5rem 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">env<span>lint</span></div>
+    <div class="tagline">.env file validator — find missing values, duplicates, and exposed secrets</div>
+    <div class="trust">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M6 1L1.5 3v3c0 2.5 1.95 4.85 4.5 5.5C8.55 10.85 10.5 8.5 10.5 6V3L6 1z" stroke="currentColor" stroke-width="1.2" fill="none"/>
+        <path d="M4 6l1.5 1.5L8 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      Runs entirely in your browser — nothing is uploaded or transmitted
+    </div>
+  </header>
+
+  <div class="input-section">
+    <div class="input-label">
+      <span>paste your .env file below</span>
+      <button class="btn-sm" id="load-example">load example</button>
+    </div>
+    <textarea
+      id="env-input"
+      placeholder="# example
+DATABASE_URL=postgresql://user:password@localhost:5432/myapp
+REDIS_URL=redis://localhost:6379
+API_KEY=sk-abc123
+SECRET_KEY=
+STRIPE_SECRET_KEY=sk_live_...
+NODE_ENV=development
+PORT=3000
+DEBUG=true"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+    ></textarea>
+    <div class="controls">
+      <button class="btn-primary" id="lint-btn">lint .env</button>
+      <button class="btn-clear" id="clear-btn">clear</button>
+      <label class="upload-label" for="file-input">upload file</label>
+      <input type="file" id="file-input" accept=".env,.txt,text/plain">
+    </div>
+  </div>
+
+  <div id="results">
+    <div class="summary-bar" id="summary-bar"></div>
+
+    <div class="section" id="issues-section">
+      <div class="section-title">issues</div>
+      <div class="issue-list" id="issue-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">parsed keys</div>
+      <div class="output-block">
+        <table class="env-table" id="env-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>key</th>
+              <th>value</th>
+              <th>status</th>
+            </tr>
+          </thead>
+          <tbody id="env-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="output-block">
+        <div class="output-header">
+          <span class="output-filename">.env.example</span>
+          <div style="display:flex;align-items:center;">
+            <button class="btn-sm" id="copy-example-btn">copy</button>
+            <span class="copied" id="copy-feedback">copied!</span>
+          </div>
+        </div>
+        <div class="output-code" id="example-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABOUT / CONTENT DEPTH -->
+  <div class="about-section">
+    <h1>What is EnvLint?</h1>
+    <p>
+      EnvLint is a free browser-based validator for <strong>.env files</strong> — the environment variable configuration
+      files used by nearly every modern web application. Paste your .env file into the editor above and instantly see
+      a full parse of every key-value pair, a list of issues, and a generated <code>.env.example</code> template
+      you can safely commit to your repository.
+    </p>
+    <p>
+      Unlike other online .env tools, EnvLint runs <strong>entirely in your browser</strong>. Your environment variables
+      never leave your machine. There is no server, no database, and no network request. You can verify this by
+      opening your browser's developer tools and watching the Network tab — you'll see nothing sent after you click
+      "lint .env."
+    </p>
+
+    <h2>What EnvLint checks</h2>
+    <ul>
+      <li><strong>Missing values</strong> — keys with an equals sign but no value (e.g., <code>API_KEY=</code>)</li>
+      <li><strong>Duplicate keys</strong> — the same key appearing more than once; later values silently overwrite earlier ones</li>
+      <li><strong>Invalid line format</strong> — lines that aren't comments, blank lines, or valid <code>KEY=VALUE</code> pairs</li>
+      <li><strong>Exposed-looking secrets</strong> — keys whose names suggest sensitive data (SECRET, TOKEN, KEY, PASSWORD, PRIVATE) with real non-placeholder values</li>
+      <li><strong>Suspicious placeholders</strong> — common placeholder patterns (<code>your-key-here</code>, <code>changeme</code>, <code>xxx</code>) that suggest the file isn't configured for the current environment</li>
+    </ul>
+
+    <h2>How to use the .env.example output</h2>
+    <p>
+      The generated <code>.env.example</code> replaces all values with descriptive placeholders
+      while preserving comments and key names. This file is safe to commit to version control —
+      it documents which environment variables your project requires without exposing any secrets.
+      Team members clone the repo, copy <code>.env.example</code> to <code>.env</code>, and fill in
+      their own values.
+    </p>
+
+    <h2>The .env file format</h2>
+    <p>
+      A <code>.env</code> file stores environment variables as <code>KEY=VALUE</code> pairs, one per line.
+      Lines beginning with <code>#</code> are comments. Values can be quoted with single or double quotes
+      to preserve whitespace or include special characters. The <code>export</code> prefix is optional and
+      is stripped by most loaders. Empty lines are ignored.
+    </p>
+    <p>
+      The format is read at startup by <strong>dotenv</strong> (Node.js), <strong>python-dotenv</strong> (Python),
+      <strong>dotenv-rails</strong> (Ruby/Rails), <strong>godotenv</strong> (Go), and dozens of other libraries.
+      Despite its ubiquity, there is no single formal specification — parsers differ in edge cases around
+      quoted values, multiline support, and whitespace handling. EnvLint follows the most widely-adopted
+      conventions from the original Node.js dotenv package.
+    </p>
+
+    <h2>Security note</h2>
+    <p>
+      Your <code>.env</code> file typically contains database credentials, API keys, authentication secrets,
+      and other sensitive values. Never paste it into a tool that submits data to a server unless you
+      fully trust that server and its data handling practices. EnvLint is designed from the ground up
+      to eliminate this risk — there is no server to trust.
+    </p>
+
+    <div class="faq">
+      <h2>Frequently asked questions</h2>
+
+      <div class="faq-item">
+        <div class="faq-q">Is my .env file uploaded to a server?</div>
+        <div class="faq-a">No. EnvLint runs entirely in your browser using JavaScript. Your .env content never leaves your machine — there is no server, no database, and no logging of any kind.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">What is a .env file?</div>
+        <div class="faq-a">A .env file stores environment variables — configuration values like database URLs, API keys, and feature flags — for a software project. It is read at startup by frameworks like Node.js (via dotenv), Ruby on Rails, Django, and others. The file lives in the project root and should never be committed to version control.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">What does "missing value" mean?</div>
+        <div class="faq-a">A missing value means the key exists in the file but has nothing after the equals sign — for example, <code>DATABASE_URL=</code>. This is almost always a configuration error. The application will see an empty string or undefined for that variable.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Why are duplicate keys a problem?</div>
+        <div class="faq-a">Most .env loaders silently use the last (or first) occurrence when a key appears more than once, discarding the other. This can cause subtle bugs when you think you're setting a variable but a later duplicate overrides it without any warning.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Does EnvLint support multiline values?</div>
+        <div class="faq-a">Yes. EnvLint handles quoted values that span multiple lines, values containing # characters, and values with embedded equals signs, following common dotenv conventions.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">What is a .env.example file?</div>
+        <div class="faq-a">A .env.example is a safe-to-commit template of your .env with all sensitive values replaced by placeholder text. It documents which environment variables your project requires. EnvLint generates one automatically from your input.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>EnvLint — free .env validator</span>
+    <span>
+      <a href="https://bitterdesk.com" target="_blank" rel="noopener">support</a>
+      &nbsp;&middot;&nbsp;
+      built with <a href="https://bitter.sh" target="_blank" rel="noopener">Bitter</a>
+    </span>
+  </footer>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // Sensitive key name patterns
+  const SENSITIVE_PATTERNS = [
+    /SECRET/i, /TOKEN/i, /API[_\s]?KEY/i, /PRIVATE/i, /PASSWORD/i,
+    /PASSWD/i, /AUTH/i, /CREDENTIAL/i, /CERT/i, /SIGNING/i,
+    /WEBHOOK/i, /OAUTH/i, /ACCESS[_\s]?KEY/i
+  ];
+
+  // Common placeholder patterns
+  const PLACEHOLDER_PATTERNS = [
+    /^your[-_\s]/i, /[-_\s]here$/i, /^changeme$/i, /^replace/i,
+    /^xxx+$/i, /^<.+>$/, /^\[.+\]$/, /^enter[-_\s]/i,
+    /^todo$/i, /^fixme$/i, /^placeholder/i
+  ];
+
+  function isSensitiveKey(key) {
+    return SENSITIVE_PATTERNS.some(p => p.test(key));
+  }
+
+  function isPlaceholderValue(val) {
+    return PLACEHOLDER_PATTERNS.some(p => p.test(val.trim()));
+  }
+
+  function placeholderFor(key) {
+    if (/URL|DSN|URI/.test(key)) return 'your-' + key.toLowerCase().replace(/_/g, '-');
+    if (/PORT/.test(key)) return '3000';
+    if (/ENV|NODE_ENV|RAILS_ENV/.test(key)) return 'development';
+    if (/DEBUG/.test(key)) return 'false';
+    if (/HOST/.test(key)) return 'localhost';
+    return 'your-' + key.toLowerCase().replace(/_/g, '-') + '-here';
+  }
+
+  // Parse a .env file. Returns array of { line, type, key, value, raw, lineNo }
+  // types: blank, comment, kv, invalid
+  function parseEnv(text) {
+    const lines = text.split('\n');
+    const entries = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const raw = lines[i];
+      const trimmed = raw.trim();
+      const lineNo = i + 1;
+
+      if (trimmed === '') {
+        entries.push({ type: 'blank', raw, lineNo });
+        i++;
+        continue;
+      }
+
+      if (trimmed.startsWith('#')) {
+        entries.push({ type: 'comment', raw, lineNo, comment: trimmed });
+        i++;
+        continue;
+      }
+
+      // Strip optional 'export ' prefix
+      const stripped = trimmed.startsWith('export ') ? trimmed.slice(7) : trimmed;
+      const eqIdx = stripped.indexOf('=');
+
+      if (eqIdx === -1) {
+        entries.push({ type: 'invalid', raw, lineNo, reason: 'no equals sign' });
+        i++;
+        continue;
+      }
+
+      const key = stripped.slice(0, eqIdx).trim();
+      let rawVal = stripped.slice(eqIdx + 1);
+
+      // Validate key
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+        entries.push({ type: 'invalid', raw, lineNo, key, reason: 'invalid key name (use A-Z, 0-9, underscore; must not start with digit)' });
+        i++;
+        continue;
+      }
+
+      // Handle quoted values (possibly multiline)
+      let value;
+      const firstChar = rawVal.trim()[0];
+      if (firstChar === '"' || firstChar === "'") {
+        const q = firstChar;
+        rawVal = rawVal.trim();
+        let inner = rawVal.slice(1);
+        let closed = false;
+        while (true) {
+          const closeIdx = findClosingQuote(inner, q);
+          if (closeIdx !== -1) {
+            value = inner.slice(0, closeIdx);
+            if (q === '"') value = value.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            closed = true;
+            break;
+          }
+          i++;
+          if (i >= lines.length) break;
+          inner += '\n' + lines[i];
+        }
+        if (!closed) value = inner; // unterminated quote, take as-is
+      } else {
+        // Unquoted: strip inline comment
+        const commentIdx = rawVal.indexOf(' #');
+        value = commentIdx !== -1 ? rawVal.slice(0, commentIdx).trim() : rawVal.trim();
+      }
+
+      entries.push({ type: 'kv', raw, lineNo, key, value });
+      i++;
+    }
+
+    return entries;
+  }
+
+  function findClosingQuote(str, q) {
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] === '\\') { i++; continue; }
+      if (str[i] === q) return i;
+    }
+    return -1;
+  }
+
+  function lint(entries) {
+    const issues = [];
+    const keyCounts = {};
+    const kvEntries = entries.filter(e => e.type === 'kv');
+
+    // Count keys for duplicate detection
+    for (const e of kvEntries) {
+      keyCounts[e.key] = (keyCounts[e.key] || 0) + 1;
+    }
+
+    for (const e of entries) {
+      if (e.type === 'invalid') {
+        issues.push({ level: 'error', key: e.key || null, lineNo: e.lineNo, msg: e.reason || 'invalid line format', raw: e.raw });
+        continue;
+      }
+      if (e.type !== 'kv') continue;
+
+      if (keyCounts[e.key] > 1) {
+        // Only report once per key
+        const alreadyReported = issues.some(i => i.key === e.key && i.code === 'duplicate');
+        if (!alreadyReported) {
+          issues.push({ level: 'error', key: e.key, lineNo: e.lineNo, msg: `duplicate key (appears ${keyCounts[e.key]} times — only one value will be used)`, code: 'duplicate' });
+        }
+      }
+
+      if (e.value === '' || e.value === undefined || e.value === null) {
+        issues.push({ level: 'error', key: e.key, lineNo: e.lineNo, msg: 'missing value (key is defined but empty)', code: 'empty' });
+      } else if (isSensitiveKey(e.key) && !isPlaceholderValue(e.value)) {
+        issues.push({ level: 'warn', key: e.key, lineNo: e.lineNo, msg: 'looks like a real secret — ensure this file is in .gitignore', code: 'secret' });
+      } else if (isPlaceholderValue(e.value)) {
+        issues.push({ level: 'info', key: e.key, lineNo: e.lineNo, msg: 'placeholder value — configure before using in production', code: 'placeholder' });
+      }
+    }
+
+    return issues;
+  }
+
+  function generateExample(entries) {
+    const lines = [];
+    const seen = new Set();
+
+    for (const e of entries) {
+      if (e.type === 'blank') {
+        lines.push('');
+      } else if (e.type === 'comment') {
+        lines.push(e.raw);
+      } else if (e.type === 'kv') {
+        if (seen.has(e.key)) continue; // skip duplicates in example
+        seen.add(e.key);
+        const exVal = isPlaceholderValue(e.value || '') ? (e.value || placeholderFor(e.key)) : placeholderFor(e.key);
+        lines.push(`${e.key}=${exVal}`);
+      } else if (e.type === 'invalid') {
+        lines.push('# [invalid] ' + e.raw);
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  function renderSummary(kvEntries, issues) {
+    const total = kvEntries.length;
+    const errors = issues.filter(i => i.level === 'error').length;
+    const warnings = issues.filter(i => i.level === 'warn').length;
+    const ok = total - [...new Set(issues.filter(i => i.level === 'error').map(i => i.key).filter(Boolean))].length;
+
+    const bar = document.getElementById('summary-bar');
+    bar.innerHTML = `
+      <div class="stat"><span class="stat-val neutral">${total}</span><span class="stat-lbl">keys found</span></div>
+      <div class="stat"><span class="stat-val ${errors > 0 ? 'error' : 'ok'}">${errors}</span><span class="stat-lbl">errors</span></div>
+      <div class="stat"><span class="stat-val ${warnings > 0 ? 'warn' : 'ok'}">${warnings}</span><span class="stat-lbl">warnings</span></div>
+      <div class="stat"><span class="stat-val ok">${ok}</span><span class="stat-lbl">clean</span></div>
+    `;
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderIssues(issues) {
+    const list = document.getElementById('issue-list');
+    if (issues.length === 0) {
+      list.innerHTML = '<div class="no-issues">&#10003; No issues found</div>';
+      return;
+    }
+
+    const ICON = { error: '&#10007;', warn: '&#9888;', info: '&#8505;' };
+    list.innerHTML = issues.map(issue => `
+      <div class="issue ${issue.level}">
+        <span class="issue-icon">${ICON[issue.level] || ''}</span>
+        <span class="issue-text">
+          ${issue.key ? `<span class="issue-key">${escapeHtml(issue.key)}</span>` : `<span style="color:var(--muted)">line ${issue.lineNo}</span>`}
+          <span class="issue-msg"> — ${escapeHtml(issue.msg)}</span>
+        </span>
+      </div>
+    `).join('');
+  }
+
+  function renderTable(kvEntries, issues) {
+    const issueMap = {};
+    for (const i of issues) {
+      if (i.key) (issueMap[i.key] = issueMap[i.key] || []).push(i);
+    }
+
+    const tbody = document.getElementById('env-tbody');
+    if (kvEntries.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1rem;">no key-value pairs found</td></tr>';
+      return;
+    }
+
+    const seen = new Set();
+    tbody.innerHTML = kvEntries.map((e, idx) => {
+      const dup = seen.has(e.key);
+      seen.add(e.key);
+      const myIssues = issueMap[e.key] || [];
+      const hasError = myIssues.some(i => i.level === 'error');
+      const hasWarn = myIssues.some(i => i.level === 'warn');
+
+      let valDisplay;
+      if (e.value === '' || e.value == null) {
+        valDisplay = '<span class="val-empty">(empty)</span>';
+      } else if (isSensitiveKey(e.key) && !isPlaceholderValue(e.value)) {
+        valDisplay = `<span class="val-masked" title="${escapeHtml(e.value)}">${maskValue(e.value)}</span>`;
+      } else {
+        valDisplay = `<span class="val-cell">${escapeHtml(e.value.length > 80 ? e.value.slice(0, 77) + '...' : e.value)}</span>`;
+      }
+
+      const badges = [
+        dup ? '<span class="badge badge-dup">dup</span>' : '',
+        hasError && !dup ? '<span class="badge badge-error">error</span>' : '',
+        hasWarn ? '<span class="badge badge-warn">secret</span>' : '',
+      ].join('');
+
+      return `<tr>
+        <td style="color:var(--muted);font-size:0.72rem;">${idx + 1}</td>
+        <td class="key-cell">${escapeHtml(e.key)}</td>
+        <td>${valDisplay}</td>
+        <td>${badges || '<span style="color:var(--ok);font-size:0.75rem;">&#10003;</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function maskValue(v) {
+    if (v.length <= 4) return '••••';
+    return v.slice(0, 4) + '••••••';
+  }
+
+  function renderExample(exampleText) {
+    const container = document.getElementById('example-output');
+    const lines = exampleText.split('\n');
+    container.innerHTML = lines.map(line => {
+      if (line.startsWith('#')) return `<span class="output-comment">${escapeHtml(line)}</span>`;
+      if (line === '') return '';
+      const eq = line.indexOf('=');
+      if (eq === -1) return escapeHtml(line);
+      const k = line.slice(0, eq);
+      const v = line.slice(eq + 1);
+      return `<span class="output-key">${escapeHtml(k)}</span>=<span class="output-val">${escapeHtml(v)}</span>`;
+    }).join('\n');
+  }
+
+  function run() {
+    const text = document.getElementById('env-input').value;
+    if (!text.trim()) return;
+
+    const entries = parseEnv(text);
+    const kvEntries = entries.filter(e => e.type === 'kv');
+    const issues = lint(entries);
+    const exampleText = generateExample(entries);
+
+    renderSummary(kvEntries, issues);
+    renderIssues(issues);
+    renderTable(kvEntries, issues);
+    renderExample(exampleText);
+
+    // Store for copy
+    window._envlintExample = exampleText;
+
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Event listeners
+  document.getElementById('lint-btn').addEventListener('click', run);
+
+  document.getElementById('env-input').addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
+  });
+
+  document.getElementById('clear-btn').addEventListener('click', function() {
+    document.getElementById('env-input').value = '';
+    document.getElementById('results').style.display = 'none';
+  });
+
+  document.getElementById('file-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      document.getElementById('env-input').value = ev.target.result;
+      run();
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  document.getElementById('copy-example-btn').addEventListener('click', function() {
+    const text = window._envlintExample || '';
+    navigator.clipboard.writeText(text).then(function() {
+      const fb = document.getElementById('copy-feedback');
+      fb.classList.add('show');
+      setTimeout(() => fb.classList.remove('show'), 1800);
+    });
+  });
+
+  document.getElementById('load-example').addEventListener('click', function() {
+    document.getElementById('env-input').value = [
+      '# App configuration',
+      'NODE_ENV=development',
+      'PORT=3000',
+      '',
+      '# Database',
+      'DATABASE_URL=postgresql://user:password@localhost:5432/myapp_development',
+      'REDIS_URL=redis://localhost:6379',
+      '',
+      '# Authentication',
+      'SECRET_KEY_BASE=abc123verysecretvalue',
+      'JWT_SECRET=my-jwt-signing-secret',
+      '',
+      '# External APIs',
+      'STRIPE_SECRET_KEY=sk_live_51abc...',
+      'SENDGRID_API_KEY=',
+      'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE',
+      '',
+      '# Flags',
+      'DEBUG=true',
+      'FEATURE_NEW_DASHBOARD=false',
+      '',
+      '# Duplicates example',
+      'DATABASE_URL=postgresql://other@localhost/other',
+      'INVALID LINE WITHOUT EQUALS',
+    ].join('\n');
+    run();
+  });
+})();
+</script>
+</body>
+</html>
