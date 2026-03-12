@@ -64,14 +64,6 @@
       },
       {
         "@type": "Question",
-        "name": "What does EnvLint check for?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "EnvLint checks for: missing values (KEY= with nothing after the equals sign), duplicate keys, keys with spaces or invalid characters, lines that are neither comments nor valid key=value pairs, and keys that look like secrets (containing words like KEY, SECRET, TOKEN, PASSWORD, or PRIVATE) that have real values rather than placeholder text."
-        }
-      },
-      {
-        "@type": "Question",
         "name": "What is a .env.example file?",
         "acceptedAnswer": {
           "@type": "Answer",
@@ -80,7 +72,7 @@
       },
       {
         "@type": "Question",
-        "name": "What does \"missing value\" mean in EnvLint?",
+        "name": "What does \"missing value\" mean?",
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "A missing value means the key exists in the file but has nothing after the equals sign — for example, DATABASE_URL=. This is almost always a configuration error. The application will see an empty string or undefined for that variable."
@@ -88,7 +80,7 @@
       },
       {
         "@type": "Question",
-        "name": "Why are duplicate keys in a .env file a problem?",
+        "name": "Why are duplicate keys a problem?",
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "Most .env loaders silently use the last (or first) occurrence when a key appears more than once, discarding the other. This can cause subtle bugs when you think you're setting a variable but a later duplicate overrides it without any warning."
@@ -96,7 +88,7 @@
       },
       {
         "@type": "Question",
-        "name": "Does EnvLint support multi-line values?",
+        "name": "Does EnvLint support multiline values?",
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "Yes. EnvLint handles quoted values that span multiple lines, values containing # characters, and values with embedded equals signs, following the dotenv specification."
