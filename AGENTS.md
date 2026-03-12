@@ -36,4 +36,4 @@ Free. No paid tier yet.
 
 ## Support
 
-https://bitterdesk.com
+https://bitterdesk.com/s/envlint/
