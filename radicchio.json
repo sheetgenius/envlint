@@ -1,0 +1,13 @@
+{
+  "api_base": "https://radicchio.fly.dev",
+  "files": [
+    "index.html",
+    "og.png",
+    "og.svg",
+    "robots.txt",
+    "sitemap.xml"
+  ],
+  "hostname": "envlint.com",
+  "site_id": 7,
+  "site_name": "EnvLint"
+}
