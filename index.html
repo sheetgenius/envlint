@@ -50,63 +50,6 @@
   }
   </script>
 
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "Is my .env file uploaded to a server?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "No. EnvLint runs entirely in your browser. Your .env file content never leaves your machine — there is no server, no database, and no logging. You can verify this by disconnecting from the internet and using the tool."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What is a .env file?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "A .env file stores environment variables for a software project — configuration values like database URLs, API keys, and feature flags. It is read at startup by frameworks like Node.js (via dotenv), Ruby on Rails, Django, and others. The file lives in the project root and should never be committed to version control."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What is a .env.example file?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "A .env.example file is a safe-to-commit template of your .env file with all sensitive values replaced by placeholder text. It documents which environment variables your project requires without exposing actual secrets. EnvLint generates a .env.example automatically from your pasted .env file."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What does \"missing value\" mean?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "A missing value means the key exists in the file but has nothing after the equals sign — for example, DATABASE_URL=. This is almost always a configuration error. The application will see an empty string or undefined for that variable."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Why are duplicate keys a problem?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Most .env loaders silently use the last (or first) occurrence when a key appears more than once, discarding the other. This can cause subtle bugs when you think you're setting a variable but a later duplicate overrides it without any warning."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does EnvLint support multiline values?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes. EnvLint handles quoted values that span multiple lines, values containing # characters, and values with embedded equals signs, following the dotenv specification."
-        }
-      }
-    ]
-  }
-  </script>
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
