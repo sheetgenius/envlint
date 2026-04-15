@@ -1,0 +1,10 @@
+{
+  "name": "envlint",
+  "private": true,
+  "scripts": {
+    "qa:smoke": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.1"
+  }
+}
