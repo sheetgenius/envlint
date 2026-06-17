@@ -6,7 +6,7 @@ Static environment-variable linting reference for `envlint.com`.
 
 - Production: `https://envlint.com`
 - Radicchio site: `7` (`envlint`)
-- Source deploy: push to `main` on `sheetgenius/envlint`; GitHub sends a signed webhook to Radicchio, which publishes the repository root.
+- Source deploy: push to `main` on `sheetgenius/envlint`; GitHub sends a signed webhook to Radicchio, which runs a no-op `true` build command and publishes the repository root.
 - Repo-specific deploy secrets: none. `config/deploy.credentials.yml` intentionally has an empty selector set; the webhook secret lives in Radicchio and GitHub, not in this repo.
 
 ## Verification
