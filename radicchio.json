@@ -1,5 +1,6 @@
 {
   "api_base": "https://radicchio.bitter.sh",
+  "build": false,
   "files": [
     "index.html",
     "og.png",
